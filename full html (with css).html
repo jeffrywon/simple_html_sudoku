@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Sudoku Solver</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+        }
+
+        h1 {
+            color: #333333;
+        }
+
+        .container {
+            max-width: 500px;
+            margin-top: auto;
+            margin-bottom: auto;
+            margin-left: auto;
+            margin-right: auto;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            border-radius: 5px;
+        }
+
+        .sudoku-table {
+            border-collapse: collapse;
+            margin: 0 auto;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .sudoku-table td {
+            border: 1px solid #999999;
+            width: 30px;
+            height: 30px;
+            font-size: 20px;
+            font-weight: bold;
+            padding: 8px;
+        }
+
+        .sudoku-table tr:nth-child(3n+1) td {
+            border-top-width: 3px;
+        }
+
+        .sudoku-table tr:nth-child(3n) td {
+            border-bottom-width: 3px;
+        }
+
+        .sudoku-table td:nth-child(3n+1) {
+            border-left-width: 3px;
+        }
+
+        .sudoku-table td:nth-child(3n) {
+            border-right-width: 3px;
+        }
+
+        .sudoku-table input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            text-align: center;
+            outline: none;
+            font-size: 16px;
+            font-weight: bold;
+        }
+
+        .progress {
+            margin-top: 20px;
+        }
+
+        .button-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .button {
+            display: inline-block;
+            margin-left: 7px;
+            margin-right: 7px;
+            padding: 7px 14px;
+            font-size: 14px;
+            font-weight: bold;
+            text-transform: uppercase;
+            text-align: center;
+            background-color: #4caf50;
+            color: #ffffff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .button:hover {
+            background-color: #45a049;
+        }
+
+
+        .progress-bar-container {
+            width: 300px;
+            height: 20px;
+            background-color: #f2f2f2;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            overflow: hidden;
+            display: none;
+            margin-left: auto;
+            margin-right: auto;
+            margin-top: 15px;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background-color: #4CAF50;
+            width: 0%;
+
+        }
+
+        .solved-message {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            margin-top: 20px;
+            display: none;
+        }
+
+        .selected {
+            background-color: #ffffcc;
+        }
+
+        .slider-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-top: 10px;
+            font-weight: 700;
+        }
+
+        #difficultySlider {
+            margin-right: 7px;
+            /* 根据需要调整滑块的位置 */
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>Sudoku Solver</h1>
+        <table class="sudoku-table" id="sudokuTable"></table>
+        <div class="progress-bar-container">
+            <div class="progress-bar"></div>
+        </div>
+
+        <div class="button-container">
+            <button class="button" onclick="solveSudoku()">Solve Sudoku</button>
+            <button id="clearButton" class="button" onclick="clearSudoku()">Clear Sudoku</button>
+        </div>
+
+        <div class="slider-container">
+
+            <input type="range" id="difficultySlider" min="0" max="81" value="0" oninput="updateDifficulty()">
+            <span id="difficultyLabel" style="font-size: 15px;">0</span>
+        </div>
+
+    </div>
+
+    <script>
+        var difficulty = 10 //难度（越少越难）
+        var tableBody = document.querySelector('#sudokuTable');
+        var sudokuTable = document.createElement('table'); // 创建数独表格
+        sudokuTable.classList.add('sudoku-table');
+
+        for (var row = 0; row < 9; row++) {
+            var tableRow = document.createElement('tr');
+
+            for (var col = 0; col < 9; col++) {
+                var tableCell = document.createElement('td');
+                var input = document.createElement('input');
+                input.type = 'text';
+                input.maxLength = 2;
+                input.id = `cell-${row}-${col}`; // 使用字符串插值生成id属性
+                input.oninput = restrictInput;
+                input.onclick = selectCell; // 添加点击事件监听器
+                tableCell.appendChild(input);
+                tableRow.appendChild(tableCell);
+            }
+
+            sudokuTable.appendChild(tableRow);
+        }
+
+        tableBody.appendChild(sudokuTable);
+
+        function updateDifficulty() {
+            var slider = document.querySelector('#difficultySlider');
+            difficulty = parseInt(slider.value);
+            var difficultyLabel = document.getElementById('difficultyLabel');
+            difficultyLabel.textContent = difficulty;
+            // 调用适当的函数来更新数独难度
+            generateIncompleteSudoku();
+        }
+
+
+        function generateIncompleteSudoku() {
+            clearSudoku(); // 清空数独表格
+
+            var sudoku = generateSudoku(); // 生成完整的数独
+            var clues = getRandomClues(); // 获取随机要显示的格子数量
+
+            // 在数独表格中显示随机的格子
+            for (var i = 0; i < clues.length; i++) {
+                var { row, col } = clues[i];
+                var input = document.getElementById(`cell-${row}-${col}`);
+                input.value = sudoku[row][col];
+                input.readOnly = true;
+            }
+
+            updateClearButtonVisibility();
+        }
+
+        // 生成完整的数独
+        function generateSudoku() {
+            // 创建一个空的数独数组
+            var sudoku = [];
+            for (var row = 0; row < 9; row++) {
+                sudoku[row] = [];
+                for (var col = 0; col < 9; col++) {
+                    sudoku[row][col] = 0;
+                }
+            }
+
+            // 使用递归函数填充数独数组
+            fillSudoku(sudoku, 0, 0);
+
+            return sudoku;
+        }
+
+        // 递归填充数独数组
+        function fillSudoku(sudoku, row, col) {
+            // 达到数独的最后一个格子，填充成功
+            if (row === 9) {
+                return true;
+            }
+
+            var nextRow, nextCol;
+            if (col === 8) {
+                nextRow = row + 1;
+                nextCol = 0;
+            } else {
+                nextRow = row;
+                nextCol = col + 1;
+            }
+
+            // 生成1到9的随机数字
+            var numbers = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+            shuffleArray(numbers);
+
+            for (var i = 0; i < numbers.length; i++) {
+                var number = numbers[i];
+
+                if (isValidNumber(sudoku, row, col, number)) {
+                    sudoku[row][col] = number;
+
+                    if (fillSudoku(sudoku, nextRow, nextCol)) {
+                        return true;
+                    }
+
+                    sudoku[row][col] = 0; // 回溯
+                }
+            }
+
+            return false;
+        }
+
+
+
+        // 获取随机要显示的格子数量
+        function getRandomClues() {
+            var clues = [];
+
+            // 生成1到81的随机数，并选择前17个作为要显示的格子数量
+            var positions = Array.from({ length: 81 }, (_, i) => i);
+            shuffleArray(positions);
+            positions = positions.slice(0, difficulty);
+
+            for (var i = 0; i < positions.length; i++) {
+                var position = positions[i];
+                var row = Math.floor(position / 9);
+                var col = position % 9;
+                clues.push({ row, col });
+            }
+
+            return clues;
+        }
+
+        // 随机洗牌数组
+        function shuffleArray(array) {
+            for (var i = array.length - 1; i > 0; i--) {
+                var j = Math.floor(Math.random() * (i + 1));
+                var temp = array[i];
+                array[i] = array[j];
+                array[j] = temp;
+            }
+        }
+
+        // 检查数字在数独数组中是否有效
+        function isValidNumber(sudoku, row, col, number) {
+            return (
+                isValidInRow(sudoku, row, number) &&
+                isValidInColumn(sudoku, col, number) &&
+                isValidInBox(sudoku, row, col, number)
+            );
+        }
+
+        // 检查数字在所在行是否有效
+        function isValidInRow(sudoku, row, number) {
+            for (var col = 0; col < 9; col++) {
+                if (sudoku[row][col] === number) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 检查数字在所在列是否有效
+        function isValidInColumn(sudoku, col, number) {
+            for (var row = 0; row < 9; row++) {
+                if (sudoku[row][col] === number) {
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        // 检查数字在所在九宫格是否有效
+        function isValidInBox(sudoku, startRow, startCol, number) {
+            var boxStartRow = Math.floor(startRow / 3) * 3;
+            var boxStartCol = Math.floor(startCol / 3) * 3;
+
+            for (var row = boxStartRow; row < boxStartRow + 3; row++) {
+                for (var col = boxStartCol; col < boxStartCol + 3; col++) {
+                    if (sudoku[row][col] === number) {
+                        return false;
+                    }
+                }
+            }
+            return true;
+        }
+
+        // 清空数独表格
+        function clearSudoku() {
+            var inputs = document.getElementsByTagName("input");
+            for (var i = 0; i < inputs.length; i++) {
+                inputs[i].value = "";
+                inputs[i].readOnly = false;
+            }
+            updateClearButtonVisibility();
+        }
+
+        // 更新清空按钮的可见性
+        function updateClearButtonVisibility() {
+            var clearButton = document.getElementById("clear-button");
+            var inputs = document.getElementsByTagName("input");
+            clearButton.style.display = inputs[0].value ? "inline-block" : "none";
+        }
+
+
+
+
+        // 检查单元格是否包含数字
+        function hasInput() {
+            for (var row = 0; row < 9; row++) {
+                for (var col = 0; col < 9; col++) {
+                    var input = document.getElementById(`cell-${row}-${col}`);
+                    if (input.value !== '') {
+                        return true;
+                    }
+                }
+            }
+            return false;
+        }
+
+        // 显示或隐藏清空按钮
+        function updateClearButtonVisibility() {
+            var clearButton = document.getElementById('clearButton');
+            clearButton.style.display = hasInput() ? 'block' : 'none';
+        }
+        function restrictInput(event) {
+            var inputValue = event.target.value;
+            if (inputValue.length > 1) {
+                inputValue = inputValue.slice(-1); // 只保留最后输入的字符
+            }
+            event.target.value = inputValue.replace(/[^1-9]/g, '');
+            updateClearButtonVisibility();
+        }
+
+
+
+
+        function clearSudoku() {
+            var hasNumber = false;
+
+            for (var row = 0; row < 9; row++) {
+                for (var col = 0; col < 9; col++) {
+                    var input = document.getElementById(`cell-${row}-${col}`);
+                    if (input.value !== '') {
+                        input.value = '';
+                        hasNumber = true;
+                    }
+                }
+            }
+            updateClearButtonVisibility();
+        }
+
+
+
+        sudokuTable.addEventListener("keyup", function (event) {
+            if (event.keyCode === 13) { // 13 represents the Enter key
+                event.preventDefault();
+                solveSudoku();
+            }
+        });
+
+        // 跟踪当前选择的格子的行和列
+        var selectedCell = {
+            row: 0,
+            col: 0
+        };
+
+        // 更新焦点到选定的格子
+        function updateCellFocus() {
+            var selectedInputId = `cell-${selectedCell.row}-${selectedCell.col}`;
+            var selectedInput = document.getElementById(selectedInputId);
+            selectedInput.focus();
+
+            if (selectedInput.value !== '') {
+                selectedInput.selectionStart = selectedInput.selectionEnd = selectedInput.value.length;
+            }
+        }
+
+        // 根据键盘事件移动所选的格子
+        function moveSelectedCell(event) {
+            var key = event.keyCode;
+            var newRow = selectedCell.row;
+            var newCol = selectedCell.col;
+
+            if (key === 37) {
+                // 左箭头键
+                newCol = Math.max(0, selectedCell.col - 1);
+            } else if (key === 38) {
+                // 上箭头键
+                newRow = Math.max(0, selectedCell.row - 1);
+            } else if (key === 39) {
+                // 右箭头键
+                newCol = Math.min(8, selectedCell.col + 1);
+            } else if (key === 40) {
+                // 下箭头键
+                newRow = Math.min(8, selectedCell.row + 1);
+            }
+
+            // 更新选定的格子和焦点
+            if (newRow !== selectedCell.row || newCol !== selectedCell.col) {
+                selectedCell.row = newRow;
+                selectedCell.col = newCol;
+                updateCellFocus();
+                event.preventDefault(); // 阻止默认箭头键行为
+            }
+        }
+
+
+
+        // 添加键盘事件监听器
+        document.addEventListener('keydown', moveSelectedCell);
+
+        function selectCell(event) {
+            var clickedInputId = event.target.id;
+            var [row, col] = clickedInputId.split('-').slice(1).map(Number);
+            selectedCell.row = row;
+            selectedCell.col = col;
+
+            var input = document.getElementById(clickedInputId);
+            if (input.value !== '') {
+                input.selectionStart = input.selectionEnd = input.value.length;
+            }
+        }
+
+
+        // 更新焦点到初始选定的格子
+        updateCellFocus();
+
+
+
+        async function solveSudoku() {
+            var sudoku = [];
+            console.log('sudoku solving');
+            var clearButton = document.getElementById('clearButton');
+            clearButton.disabled = true;
+
+            // Populate the sudoku array with user input
+            for (var row = 0; row < 9; row++) {
+                sudoku[row] = [];
+                for (var col = 0; col < 9; col++) {
+                    var inputId = 'cell-' + row + '-' + col;
+                    var inputValue = document.getElementById(inputId).value;
+                    if (inputValue === '') {
+                        sudoku[row][col] = 0;
+                    } else {
+                        sudoku[row][col] = parseInt(inputValue);
+                    }
+                }
+            }
+
+            // Validate the sudoku
+            if (!isValidSudoku(sudoku)) {
+                alert('Invalid sudoku! Please make sure each row, each column, and each 3x3 grid contains unique numbers from 1 to 9.');
+                return;
+            }
+
+            var progressBarContainer = document.querySelector('.progress-bar-container');
+            progressBarContainer.style.display = 'block';
+
+            if (await solveSudokuHelper(sudoku)) {
+                var progressBar = document.querySelector('.progress-bar');
+                progressBar.style.width = '100%';
+
+                setTimeout(function () {
+                    progressBarContainer.style.display = 'none';
+                }, 500);
+            } else {
+                alert('No solution exists for the given sudoku!');
+            }
+            updateClearButtonVisibility();
+            // 启用清空按钮
+            var clearButton = document.getElementById('clearButton');
+            clearButton.disabled = false;
+        }
+
+        async function solveSudokuHelper(sudoku) {
+            let emptyCell = findLeastRemainingValuesCell(sudoku);
+            if (!emptyCell) {
+                return true; // 数独已解决
+            }
+
+            let { row, col } = emptyCell;
+
+            for (let num = 1; num <= 9; num++) {
+                if (isValidNumber(sudoku, row, col, num)) {
+                    sudoku[row][col] = num;
+
+                    // Calculate progress percentage
+                    let progress = Math.floor(((row * 9 + col + 1) / 81) * 100);
+                    updateProgressBar(progress); // Update progress bar
+
+                    displaySudoku(sudoku); // 更新显示
+
+                    // 延迟1秒钟后继续解下一个单元格
+                    await new Promise((resolve) => {
+                        setTimeout(() => {
+                            resolve();
+                        }, 10);
+                    });
+
+                    if (await solveSudokuHelper(sudoku)) {
+                        return true;
+                    } else {
+                        sudoku[row][col] = 0; // 回溯
+                    }
+                }
+            }
+
+            return false; // 无解
+        }
+
+        function findLeastRemainingValuesCell(sudoku) {
+            let minOptions = 10;
+            let cell = null;
+
+            for (let row = 0; row < 9; row++) {
+                for (let col = 0; col < 9; col++) {
+                    if (sudoku[row][col] === 0) {
+                        let options = 0;
+                        for (let num = 1; num <= 9; num++) {
+                            if (isValidNumber(sudoku, row, col, num)) {
+                                options++;
+                            }
+                        }
+                        if (options < minOptions) {
+                            minOptions = options;
+                            cell = { row: row, col: col };
+                        }
+                    }
+                }
+            }
+
+            return cell;
+        }
+
+
+        function updateProgressBar(progress) {
+            var progressBar = document.querySelector('.progress-bar');
+            progressBar.style.width = progress + '%';
+        }
+
+
+        function findEmptyCell(sudoku) {
+            for (var row = 0; row < 9; row++) {
+                for (var col = 0; col < 9; col++) {
+                    if (sudoku[row][col] === 0) {
+                        return {
+                            row: row,
+                            col: col
+                        };
+                    }
+                }
+            }
+            return null; // No empty cell found
+        }
+
+        function isValidNumber(sudoku, row, col, num) {
+            // Check if the number already exists in the row
+            for (var i = 0; i < 9; i++) {
+                if (sudoku[row][i] === num) {
+                    return false;
+                }
+            }
+
+            // Check if the number already exists in the column
+            for (var i = 0; i < 9; i++) {
+                if (sudoku[i][col] === num) {
+                    return false;
+                }
+            }
+
+            // Check if the number already exists in the 3x3 grid
+            var startRow = Math.floor(row / 3) * 3;
+            var startCol = Math.floor(col / 3) * 3;
+            for (var i = startRow; i < startRow + 3; i++) {
+                for (var j = startCol; j < startCol + 3; j++) {
+                    if (sudoku[i][j] === num) {
+                        return false;
+                    }
+                }
+            }
+
+            return true; // The number is valid
+        }
+
+        // 验证数独是否有效
+        function isValidSudoku(sudoku) {
+            var errorPositions = []; // 存储错误的位置
+
+            // 验证行
+            for (var row = 0; row < 9; row++) {
+                var rowValues = new Set();
+                for (var col = 0; col < 9; col++) {
+                    var value = sudoku[row][col];
+                    if (value !== 0) {
+                        if (rowValues.has(value)) {
+                            errorPositions.push({ row: row, col: col }); // 存储错误的位置
+                        } else {
+                            rowValues.add(value);
+                        }
+                    }
+                }
+            }
+
+            // 验证列
+            for (var col = 0; col < 9; col++) {
+                var colValues = new Set();
+                for (var row = 0; row < 9; row++) {
+                    var value = sudoku[row][col];
+                    if (value !== 0) {
+                        if (colValues.has(value)) {
+                            errorPositions.push({ row: row, col: col }); // 存储错误的位置
+                        } else {
+                            colValues.add(value);
+                        }
+                    }
+                }
+            }
+
+            // 验证九宫格
+            for (var blockRow = 0; blockRow < 3; blockRow++) {
+                for (var blockCol = 0; blockCol < 3; blockCol++) {
+                    var blockValues = new Set();
+                    for (var row = blockRow * 3; row < (blockRow + 1) * 3; row++) {
+                        for (var col = blockCol * 3; col < (blockCol + 1) * 3; col++) {
+                            var value = sudoku[row][col];
+                            if (value !== 0) {
+                                if (blockValues.has(value)) {
+                                    errorPositions.push({ row: row, col: col }); // 存储错误的位置
+                                } else {
+                                    blockValues.add(value);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            return errorPositions.length === 0; // 返回是否存在错误
+        }
+
+
+
+        // 显示解决方案
+        function displaySudoku(sudoku) {
+            for (var row = 0; row < 9; row++) {
+                for (var col = 0; col < 9; col++) {
+                    var input = document.getElementById(`cell-${row}-${col}`);
+                    if (sudoku[row][col] !== 0) {
+                        input.value = sudoku[row][col];
+
+                    } else {
+                        input.value = '';
+                    }
+                }
+            }
+        }
+
+        updateClearButtonVisibility();
+
+
+    </script>
+</body>
+
+</html>
