@@ -15,7 +15,7 @@
 		</div>
 
 		<div class="button-container">
-			<button class="button" onclick="solveSudoku()">Solve Sudoku</button>
+			<button id="solveButton" class="button" onclick="solveSudoku()">Solve Sudoku</button>
 			<button id="clearButton" class="button" onclick="clearSudoku()">Clear Sudoku</button>
 		</div>
 
@@ -64,7 +64,7 @@
 
 
 		function generateIncompleteSudoku() {
-			clearSudoku(); // 清空数独表格
+			clearSudokuwithoutwarning() // 清空数独表格
 
 			var sudoku = generateSudoku(); // 生成完整的数独
 			var clues = getRandomClues(); // 获取随机要显示的格子数量
@@ -74,7 +74,6 @@
 				var { row, col } = clues[i];
 				var input = document.getElementById(`cell-${row}-${col}`);
 				input.value = sudoku[row][col];
-				input.readOnly = true;
 			}
 
 			updateClearButtonVisibility();
@@ -209,15 +208,6 @@
 			return true;
 		}
 
-		// 清空数独表格
-		function clearSudoku() {
-			var inputs = document.getElementsByTagName("input");
-			for (var i = 0; i < inputs.length; i++) {
-				inputs[i].value = "";
-				inputs[i].readOnly = false;
-			}
-			updateClearButtonVisibility();
-		}
 
 		// 更新清空按钮的可见性
 		function updateClearButtonVisibility() {
@@ -261,7 +251,21 @@
 
 		function clearSudoku() {
 			var hasNumber = false;
+			alert("Are you sure you want to clear the Sudoku grid?"); // Add the alert dialogs
+			for (var row = 0; row < 9; row++) {
+				for (var col = 0; col < 9; col++) {
+					var input = document.getElementById(`cell-${row}-${col}`);
+					if (input.value !== '') {
+						input.value = '';
+						hasNumber = true;
+					}
+				}
+			}
+			updateClearButtonVisibility();
+		}
 
+		function clearSudokuwithoutwarning() {
+			var hasNumber = false;
 			for (var row = 0; row < 9; row++) {
 				for (var col = 0; col < 9; col++) {
 					var input = document.getElementById(`cell-${row}-${col}`);
@@ -357,6 +361,8 @@
 			console.log('sudoku solving');
 			var clearButton = document.getElementById('clearButton');
 			clearButton.disabled = true;
+			var solveButton = document.getElementById('solveButton');
+			solveButton.disabled = true; // 禁用解决按钮
 
 			// Populate the sudoku array with user input
 			for (var row = 0; row < 9; row++) {
@@ -387,14 +393,16 @@
 
 				setTimeout(function () {
 					progressBarContainer.style.display = 'none';
-				}, 500);
+				}, 1);
 			} else {
-				alert('No solution exists for the given sudoku!');
+				alert('Sudoku is solving...');
 			}
 			updateClearButtonVisibility();
 			// 启用清空按钮
 			var clearButton = document.getElementById('clearButton');
 			clearButton.disabled = false;
+			var solveButton = document.getElementById('solveButton');
+			solveButton.disabled = false;
 		}
 
 		async function solveSudokuHelper(sudoku) {
@@ -461,50 +469,6 @@
 		function updateProgressBar(progress) {
 			var progressBar = document.querySelector('.progress-bar');
 			progressBar.style.width = progress + '%';
-		}
-
-
-		function findEmptyCell(sudoku) {
-			for (var row = 0; row < 9; row++) {
-				for (var col = 0; col < 9; col++) {
-					if (sudoku[row][col] === 0) {
-						return {
-							row: row,
-							col: col
-						};
-					}
-				}
-			}
-			return null; // No empty cell found
-		}
-
-		function isValidNumber(sudoku, row, col, num) {
-			// Check if the number already exists in the row
-			for (var i = 0; i < 9; i++) {
-				if (sudoku[row][i] === num) {
-					return false;
-				}
-			}
-
-			// Check if the number already exists in the column
-			for (var i = 0; i < 9; i++) {
-				if (sudoku[i][col] === num) {
-					return false;
-				}
-			}
-
-			// Check if the number already exists in the 3x3 grid
-			var startRow = Math.floor(row / 3) * 3;
-			var startCol = Math.floor(col / 3) * 3;
-			for (var i = startRow; i < startRow + 3; i++) {
-				for (var j = startCol; j < startCol + 3; j++) {
-					if (sudoku[i][j] === num) {
-						return false;
-					}
-				}
-			}
-
-			return true; // The number is valid
 		}
 
 		// 验证数独是否有效
