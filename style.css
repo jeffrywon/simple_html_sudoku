@@ -1,0 +1,143 @@
+		body {
+		    font-family: Arial, sans-serif;
+		    background-color: #f2f2f2;
+		    margin: 0;
+		    padding: 20px;
+		    text-align: center;
+		}
+
+		h1 {
+		    color: #333333;
+		}
+
+		.container {
+		    max-width: 500px;
+		    margin-top: auto;
+		    margin-bottom: auto;
+		    margin-left: auto;
+		    margin-right: auto;
+		    background-color: #ffffff;
+		    padding: 20px;
+		    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+		    border-radius: 5px;
+		}
+
+		.sudoku-table {
+		    border-collapse: collapse;
+		    margin: 0 auto;
+		    margin-top: 20px;
+		    text-align: center;
+		}
+
+		.sudoku-table td {
+		    border: 1px solid #999999;
+		    width: 30px;
+		    height: 30px;
+		    font-size: 20px;
+		    font-weight: bold;
+		    padding: 8px;
+		}
+
+		.sudoku-table tr:nth-child(3n+1) td {
+		    border-top-width: 3px;
+		}
+
+		.sudoku-table tr:nth-child(3n) td {
+		    border-bottom-width: 3px;
+		}
+
+		.sudoku-table td:nth-child(3n+1) {
+		    border-left-width: 3px;
+		}
+
+		.sudoku-table td:nth-child(3n) {
+		    border-right-width: 3px;
+		}
+
+		.sudoku-table input {
+		    width: 100%;
+		    height: 100%;
+		    border: none;
+		    text-align: center;
+		    outline: none;
+		    font-size: 16px;
+		    font-weight: bold;
+		}
+
+		.progress {
+		    margin-top: 20px;
+		}
+
+		.button-container {
+		    display: flex;
+		    flex-direction: row;
+		    justify-content: center;
+		    margin-top: 20px;
+		}
+
+		.button {
+		    display: inline-block;
+		    margin-left: 7px;
+		    margin-right: 7px;
+		    padding: 7px 14px;
+		    font-size: 14px;
+		    font-weight: bold;
+		    text-transform: uppercase;
+		    text-align: center;
+		    background-color: #4caf50;
+		    color: #ffffff;
+		    border: none;
+		    border-radius: 4px;
+		    cursor: pointer;
+		    transition: background-color 0.3s;
+		}
+
+		.button:hover {
+		    background-color: #45a049;
+		}
+
+
+		.progress-bar-container {
+		    width: 300px;
+		    height: 20px;
+		    background-color: #f2f2f2;
+		    border: 1px solid #ccc;
+		    border-radius: 4px;
+		    overflow: hidden;
+		    display: none;
+		    margin-left: auto;
+		    margin-right: auto;
+		    margin-top: 15px;
+		}
+
+		.progress-bar {
+		    height: 100%;
+		    background-color: #4CAF50;
+		    width: 0%;
+
+		}
+
+		.solved-message {
+		    text-align: center;
+		    font-size: 24px;
+		    font-weight: bold;
+		    margin-top: 20px;
+		    display: none;
+		}
+
+		.selected {
+		    background-color: #ffffcc;
+		}
+
+		.slider-container {
+		    display: flex;
+		    justify-content: center;
+		    align-items: center;
+		    margin-top: 10px;
+		    font-weight: 700;
+		}
+
+		#difficultySlider {
+		    margin-right: 7px;
+		    /* 根据需要调整滑块的位置 */
+		}
